@@ -69,6 +69,13 @@ src/
 - **skill-vetter**: Security-first vetting before installing external code
 - **ui-ux-pro-max**: Design tokens, dark mode (OLED) guidelines, typography pairings
 
+### Project Skills (.agents/skills/)
+Skills aprendidas específicas de este proyecto, consultables antes de cada tarea:
+- `kaistu-admin-ng.md` — Stack, convenciones, layout, tema
+- `firebase-bff-angular.md` — Patrón BFF con Angular SSR
+- `angular-ssr-host-validation.md` — Fix del error de host header
+- `agentes-habilidades.md` — Cómo funcionan las skills del agente
+
 ### Self-Improvement Workflow
 Log to `.learnings/LEARNINGS.md` when:
 - User corrects me
