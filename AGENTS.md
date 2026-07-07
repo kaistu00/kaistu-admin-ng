@@ -76,6 +76,19 @@ Skills aprendidas específicas de este proyecto, consultables antes de cada tare
 - `angular-ssr-host-validation.md` — Fix del error de host header
 - `agentes-habilidades.md` — Cómo funcionan las skills del agente
 
+### Firebase Skills (.agents/skills/) — para cuando implementemos BFF
+- `firebase-basics/` — CLI, login, proyectos, config inicial
+- `firebase-auth-basics/` — Auth, providers, tokens, `deploy --only auth`
+- `firebase-firestore/` — STANDARD vs ENTERPRISE, Native GraphQL/SQL
+- `firebase-hosting-basics/` — Hosting clásico, preview channels
+- `firebase-app-hosting-basics/` — App Hosting para Angular con SSR
+- `firebase-ai-logic-basics/` — Gemini API, multimodal, structured output
+- `firebase-crashlytics/` — Crash reporting SDK
+- `firebase-data-connect/` — PostgreSQL + GraphQL, esquemas, SDKs
+- `firebase-remote-config-basics/` — Feature flags, templates CLI
+- `firebase-security-rules-auditor/` — Auditoría de reglas Firestore
+- `xcode-project-setup/` — SPM packages en Xcode (solo iOS/macOS)
+
 ### Self-Improvement Workflow
 Log to `.learnings/LEARNINGS.md` when:
 - User corrects me
