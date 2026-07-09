@@ -38,7 +38,10 @@ src/
 │   │   └── studio-workers/# Trabajadores IA CRUD
 │   └── services/
 │       ├── firebase.server.ts  # Firebase Admin (SSR only)
-│       └── universe.service.ts  # Universos HTTP client
+│       ├── auth.service.ts     # Auth: Google Sign-In, sesión por cookie
+│       ├── universe.service.ts # Universos HTTP client
+│       └── guards/
+│           └── auth.guard.ts   # Protege rutas (redirige a /login)
 ├── environments/
 │   ├── environment.ts         # Dev (useEmulators: true)
 │   └── environment.prod.ts    # Prod
@@ -75,8 +78,8 @@ npm start
 - [Arquitectura](./docs/architecture.md) — Patrón BFF, SSR, componentes standalone
 - [Universos](./docs/universes.md) — CRUD completo, formulario con pestañas
 - [Mundos](./docs/worlds.md) — CRUD, tipos de mundo, relación con universos
-- [API](./docs/api.md) — Endpoints BFF de referencia
-- [Emuladores](./docs/emulators.md) — Setup de Firebase local y persistencia
+- [API](./docs/api.md) — Endpoints BFF de referencia (incluye auth)
+- [Emuladores](./docs/emulators.md) — Setup de Firebase local y persistencia (Auth + Firestore)
 
 ## Convenciones
 

@@ -88,6 +88,14 @@ Colección Firestore: `studio_workers`
 |--------|------|-------------|
 | WebSocket | `/api/n8n/ws-proxy?host=&port=` | WebSocket proxy a ComfyUI |
 
+## Autenticación
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `POST` | `/api/auth/login` | Canjea un idToken de Firebase por una cookie de sesión httpOnly. Valida que el email sea `@kaistu.com` (403 si no) |
+| `POST` | `/api/auth/logout` | Elimina la cookie de sesión |
+| `GET` | `/api/auth/me` | Verifica la cookie de sesión y devuelve el perfil del usuario (`uid`, `email`, `name`, `picture`) o 401 |
+
 ## Debug
 
 | Método | Ruta | Descripción |

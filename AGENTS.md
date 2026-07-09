@@ -11,7 +11,10 @@
 ## Architectural Rules (strict)
 
 ### BFF Pattern (Backend for Frontend)
-- **No Firebase SDK on client**. All Firestore connections go through Server Routes (`*.server.ts`).
+- **No Firebase SDK for Firestore on client**. All Firestore connections go through Server Routes (`*.server.ts`).
+- `firebase/auth` client SDK **is allowed** exclusively for Google OAuth popup login.
+- Session is managed via httpOnly cookie (`sameSite: lax`) created by the server after verifying the idToken.
+- Server validates that the authenticated email belongs to `@kaistu.com` (403 + redirect if not).
 - Client uses `HttpClient` only, targeting `/api/...` endpoints.
 - Configured via `provideHttpClient(withFetch())` in `app.config.ts`.
 - Firebase Admin uses `dynamic import()` (lazy) in `firebase.server.ts` to avoid `__dirname` ESM errors during prerendering (`google-gax` issue).
@@ -29,14 +32,18 @@
 ```
 src/
 ├── app/
+│   ├── guards/
+│   │   └── auth.guard.ts       # Route guard (redirects to /login)
 │   ├── pages/             # Lazy-loaded route pages
 │   │   ├── home/          # Dashboard
+│   │   ├── login/         # Google Sign-In page
 │   │   ├── universes/     # Universe CRUD (form with 4 tabs)
 │   │   ├── worlds/        # World CRUD (linked to universes)
 │   │   ├── local-tools/   # Tools (profiles, connections)
 │   │   └── characters/    # Character CRUD
 │   ├── services/
 │   │   ├── firebase.server.ts  # Firebase Admin (lazy import, SSR only)
+│   │   ├── auth.service.ts     # Auth signals + Google sign-in + cookie
 │   │   └── ...                 # Signals-based state services
 │   ├── app.ts             # Root component (standalone)
 │   ├── app.html           # Layout: sidebar + topbar + router-outlet

@@ -1,151 +1,168 @@
-<div class="layout">
-  <aside class="sidebar">
-    <div class="sidebar-brand">
-      <div class="brand-icon">K</div>
-      <div class="brand-text">
-        <span class="brand-name">KAISTU</span>
-        <span class="brand-sub">Studio Admin</span>
-      </div>
-    </div>
-
-    <nav class="sidebar-nav">
-      <a
-        class="nav-link"
-        routerLink="/"
-        routerLinkActive="active"
-        [routerLinkActiveOptions]="{ exact: true }"
-      >
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="7" height="7" rx="1"/>
-            <rect x="14" y="3" width="7" height="7" rx="1"/>
-            <rect x="3" y="14" width="7" height="7" rx="1"/>
-            <rect x="14" y="14" width="7" height="7" rx="1"/>
-          </svg>
-        </span>
-        <span class="nav-label">Dashboard</span>
-      </a>
-      <a
-        class="nav-link"
-        routerLink="/universes"
-        routerLinkActive="active"
-      >
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <ellipse cx="12" cy="12" rx="4" ry="10"/>
-            <path d="M2 12h20"/>
-          </svg>
-        </span>
-        <span class="nav-label">Universos</span>
-      </a>
-      <a
-        class="nav-link"
-        routerLink="/worlds"
-        routerLinkActive="active"
-      >
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M2 12h20"/>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-          </svg>
-        </span>
-        <span class="nav-label">Mundos</span>
-      </a>
-      <a
-        class="nav-link"
-        routerLink="/characters"
-        routerLinkActive="active"
-      >
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-        </span>
-        <span class="nav-label">Personajes</span>
-      </a>
-      <a
-        class="nav-link"
-        routerLink="/tools"
-        routerLinkActive="active"
-      >
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-          </svg>
-        </span>
-        <span class="nav-label">Tools</span>
-      </a>
-      <a
-        class="nav-link"
-        routerLink="/studio-workers"
-        routerLinkActive="active"
-      >
-        <span class="nav-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 2a10 10 0 0 1 10 10c0 5-4 8-10 10"/>
-            <path d="M2 12a10 10 0 0 1 10-10"/>
-            <path d="M12 22V2"/>
-          </svg>
-        </span>
-        <span class="nav-label">Trabajadores IA</span>
-      </a>
-    </nav>
-
-    <div class="sidebar-footer">
-      <div class="footer-avatar">A</div>
-      <div class="footer-info">
-        <span class="footer-name">Admin</span>
-        <span class="footer-role">Supervisor</span>
-      </div>
-      <span class="version">v0.1</span>
-    </div>
-  </aside>
-
-  <div class="main-area">
-    <header class="topbar">
-      <div class="topbar-left">
-        <span class="topbar-indicator"></span>
-        <h2 class="topbar-title">{{ pageTitle() }}</h2>
-      </div>
-      <div class="topbar-right">
-        <button class="notif-btn" aria-label="Notificaciones">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
-          <span class="notif-badge"></span>
-        </button>
-        <div class="universe-selector">
-          <span class="selector-dot"></span>
-          <select
-            class="selector-input"
-            [value]="universeService.activeUniverse()?.id ?? ''"
-            (change)="onUniverseChange($event)"
-          >
-            <option value="" disabled>Sin universo</option>
-            @for (u of universeService.universes(); track u.id) {
-              <option [value]="u.id">{{ u.name }}</option>
-            }
-          </select>
+@if (!authService.isInitialized()) {
+  <div class="loading-screen">
+    <div class="loading-spinner"></div>
+    <p>Cargando...</p>
+  </div>
+} @else if (!authService.isAuthenticated()) {
+  <router-outlet />
+} @else {
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">K</div>
+        <div class="brand-text">
+          <span class="brand-name">KAISTU</span>
+          <span class="brand-sub">Studio Admin</span>
         </div>
       </div>
-    </header>
 
-    <main class="content" (scroll)="onScroll($event)">
-      <router-outlet />
-    </main>
+      <nav class="sidebar-nav">
+        <a
+          class="nav-link"
+          routerLink="/"
+          routerLinkActive="active"
+          [routerLinkActiveOptions]="{ exact: true }"
+        >
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7" rx="1"/>
+              <rect x="14" y="3" width="7" height="7" rx="1"/>
+              <rect x="3" y="14" width="7" height="7" rx="1"/>
+              <rect x="14" y="14" width="7" height="7" rx="1"/>
+            </svg>
+          </span>
+          <span class="nav-label">Dashboard</span>
+        </a>
+        <a
+          class="nav-link"
+          routerLink="/universes"
+          routerLinkActive="active"
+        >
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <ellipse cx="12" cy="12" rx="4" ry="10"/>
+              <path d="M2 12h20"/>
+            </svg>
+          </span>
+          <span class="nav-label">Universos</span>
+        </a>
+        <a
+          class="nav-link"
+          routerLink="/worlds"
+          routerLinkActive="active"
+        >
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M2 12h20"/>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+            </svg>
+          </span>
+          <span class="nav-label">Mundos</span>
+        </a>
+        <a
+          class="nav-link"
+          routerLink="/characters"
+          routerLinkActive="active"
+        >
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </span>
+          <span class="nav-label">Personajes</span>
+        </a>
+        <a
+          class="nav-link"
+          routerLink="/tools"
+          routerLinkActive="active"
+        >
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+          </span>
+          <span class="nav-label">Tools</span>
+        </a>
+        <a
+          class="nav-link"
+          routerLink="/studio-workers"
+          routerLinkActive="active"
+        >
+          <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a10 10 0 0 1 10 10c0 5-4 8-10 10"/>
+              <path d="M2 12a10 10 0 0 1 10-10"/>
+              <path d="M12 22V2"/>
+            </svg>
+          </span>
+          <span class="nav-label">Trabajadores IA</span>
+        </a>
+      </nav>
 
-    @if (showScrollTop()) {
-      <button class="scroll-top" (click)="scrollToTop()" aria-label="Volver arriba">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="18 15 12 9 6 15"/>
-        </svg>
-      </button>
-    }
+      @if (authService.user(); as user) {
+        <div class="sidebar-footer">
+          <img class="footer-avatar" [src]="user.picture" [alt]="user.name" />
+          <div class="footer-info">
+            <span class="footer-name">{{ user.name }}</span>
+            <span class="footer-role">{{ user.email }}</span>
+          </div>
+          <button class="logout-btn" (click)="onSignOut()" title="Cerrar sesión">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16 17 21 12 16 7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+      }
+    </aside>
+
+    <div class="main-area">
+      <header class="topbar">
+        <div class="topbar-left">
+          <span class="topbar-indicator"></span>
+          <h2 class="topbar-title">{{ pageTitle() }}</h2>
+        </div>
+        <div class="topbar-right">
+          <button class="notif-btn" aria-label="Notificaciones">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            </svg>
+            <span class="notif-badge"></span>
+          </button>
+          <div class="universe-selector">
+            <span class="selector-dot"></span>
+            <select
+              class="selector-input"
+              [value]="universeService.activeUniverse()?.id ?? ''"
+              (change)="onUniverseChange($event)"
+            >
+              <option value="" disabled>Sin universo</option>
+              @for (u of universeService.universes(); track u.id) {
+                <option [value]="u.id">{{ u.name }}</option>
+              }
+            </select>
+          </div>
+        </div>
+      </header>
+
+      <main class="content" (scroll)="onScroll($event)">
+        <router-outlet />
+      </main>
+
+      @if (showScrollTop()) {
+        <button class="scroll-top" (click)="scrollToTop()" aria-label="Volver arriba">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+      }
+    </div>
   </div>
-</div>
+}

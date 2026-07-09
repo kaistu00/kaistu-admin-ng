@@ -45,6 +45,9 @@ __screenshots__/
 # Logs
 *.log
 emulators.log
+emulators_out.log
+ng_serve.log
+ng-serve.log
 ssr.log
 firebase-debug.log
 firestore-debug.log

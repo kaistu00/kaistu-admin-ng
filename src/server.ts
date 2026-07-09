@@ -14,11 +14,13 @@ import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Firestore, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
+import cookieParser from 'cookie-parser';
 import { initFirebase, getDb } from './app/services/firebase.server';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
+app.use(cookieParser());
 const angularApp = new AngularNodeAppEngine();
 
 /** API — Debug: test Firebase init */
@@ -30,6 +32,58 @@ app.get('/api/debug', async (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+/** API — Auth: verify session cookie and return user profile */
+app.get('/api/auth/me', async (req, res) => {
+  const session = req.cookies?.['session'];
+  if (!session) { res.status(401).json({ error: 'No session' }); return; }
+  try {
+    await initFirebase();
+    const { getAuth } = await import('firebase-admin/auth');
+    const decoded = await getAuth().verifySessionCookie(session, true);
+    const { uid, email, name, picture } = decoded;
+    res.json({ uid, email, name, picture } as Record<string, string>);
+  } catch {
+    res.status(401).json({ error: 'Invalid session' });
+  }
+});
+
+const KAISTU_DOMAIN = '@kaistu.com';
+
+/** API — Auth: exchange Firebase idToken for a session cookie */
+app.post('/api/auth/login', express.json(), async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) { res.status(400).json({ error: 'Missing idToken' }); return; }
+    await initFirebase();
+    const { getAuth } = await import('firebase-admin/auth');
+    const decoded = await getAuth().verifyIdToken(idToken);
+    const email = decoded.email as string | undefined;
+    if (!email || !email.endsWith(KAISTU_DOMAIN)) {
+      res.status(403).json({ error: `Access restricted to ${KAISTU_DOMAIN} accounts` });
+      return;
+    }
+    const expiresIn = 60 * 60 * 24 * 14 * 1000;
+    const sessionCookie = await getAuth().createSessionCookie(idToken, { expiresIn });
+    res.cookie('session', sessionCookie, {
+      maxAge: expiresIn,
+      httpOnly: true,
+      secure: process.env['ENVIRONMENT'] !== 'LOCAL',
+      sameSite: 'lax',
+      path: '/',
+    });
+    const { uid, name, picture } = decoded;
+    res.json({ uid, email, name, picture } as Record<string, string>);
+  } catch {
+    res.status(401).json({ error: 'Unauthorized' });
+  }
+});
+
+/** API — Auth: clear session cookie */
+app.post('/api/auth/logout', (_req, res) => {
+  res.clearCookie('session', { path: '/' });
+  res.json({ ok: true });
 });
 
 /** API — Integration connection test */
