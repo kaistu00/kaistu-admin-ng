@@ -39,6 +39,17 @@ testem.log
 /typings
 __screenshots__/
 
+# Environment
+.env
+
+# Logs
+*.log
+emulators.log
+ssr.log
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+
 # System files
 .DS_Store
 Thumbs.db

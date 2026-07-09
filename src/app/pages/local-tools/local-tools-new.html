@@ -1,0 +1,176 @@
+<div class="lt-page">
+  <header class="lt-header">
+    <div class="lt-header-left">
+      <a class="btn-back" routerLink="/tools">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+      </a>
+      <div>
+        <h1 class="lt-title">{{ editId() ? 'Editar herramienta' : 'Nueva herramienta' }}</h1>
+        <p class="lt-sub">Configura una conexión a una herramienta local o cloud</p>
+      </div>
+    </div>
+  </header>
+
+  <form class="lt-form" (submit)="onSubmit($event)">
+    <div class="form-card">
+      <div class="field">
+        <label class="field-label" for="name">Nombre</label>
+        <input
+          id="name"
+          class="field-input"
+          type="text"
+          placeholder="Ej: Mi n8n local, Comfy Cloud..."
+          [value]="formData().name"
+          (input)="onInput('name', $event)"
+        />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="type">Tipo</label>
+        <select
+          id="type"
+          class="field-input field-select"
+          [value]="formData().type"
+          (change)="onTypeChange($event)"
+        >
+          @for (t of toolTypes; track t.value) {
+            <option [value]="t.value">{{ t.label }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label">Modo</label>
+        <div class="radio-group radio-group--row">
+          <label class="radio-option radio-option--sm" [class.active]="formData().mode === 'local'">
+            <input
+              type="radio"
+              name="mode"
+              class="radio-input"
+              value="local"
+              [checked]="formData().mode === 'local'"
+              (change)="onInput('mode', $event)"
+            />
+            <div class="radio-content">
+              <span class="radio-label">Local</span>
+            </div>
+          </label>
+          <label class="radio-option radio-option--sm" [class.active]="formData().mode === 'cloud'">
+            <input
+              type="radio"
+              name="mode"
+              class="radio-input"
+              value="cloud"
+              [checked]="formData().mode === 'cloud'"
+              (change)="onInput('mode', $event)"
+            />
+            <div class="radio-content">
+              <span class="radio-label">Cloud</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      @if (formData().mode === 'local') {
+        <div class="row">
+          <div class="field field--flex">
+            <label class="field-label" for="local-url">Host</label>
+            <input
+              id="local-url"
+              class="field-input"
+              type="text"
+              placeholder="localhost"
+              [value]="formData().localUrl"
+              (input)="onInput('localUrl', $event)"
+            />
+          </div>
+          <div class="field field--narrow">
+            <label class="field-label" for="local-port">Puerto</label>
+            <input
+              id="local-port"
+              class="field-input"
+              type="text"
+              [value]="formData().localPort"
+              (input)="onInput('localPort', $event)"
+            />
+          </div>
+        </div>
+      } @else {
+        <div class="field">
+          <label class="field-label" for="cloud-url">URL del servidor</label>
+          <input
+            id="cloud-url"
+            class="field-input"
+            type="text"
+            placeholder="https://ejemplo.com"
+            [value]="formData().cloudUrl"
+            (input)="onInput('cloudUrl', $event)"
+          />
+        </div>
+      }
+
+      <div class="field">
+        <label class="field-label" for="api-key">
+          API Key
+          <span class="label-note">(solo para herramientas con API)</span>
+          <span class="info-tip" tabindex="0">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="info-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span class="info-tip-content">
+              <strong>Cómo obtener tu API Key de n8n:</strong><br/>
+              1. Abre n8n en tu navegador<br/>
+              2. Ve a <em>Settings → API</em><br/>
+              3. Haz clic en <em>"Create API Key"</em><br/>
+              4. Copia la clave generada aquí
+            </span>
+          </span>
+        </label>
+        @if (hasExistingKey && !showKeyInput()) {
+          <div class="existing-key-row">
+            <span class="existing-key-display">{{ maskedKey }}</span>
+            <button type="button" class="change-key-btn" (click)="showKeyInput.set(true)">Cambiar</button>
+          </div>
+        } @else {
+          <input
+            id="api-key"
+            class="field-input"
+            type="password"
+            placeholder="Tu API key de n8n..."
+            [value]="formData().apiKey"
+            (input)="onInput('apiKey', $event)"
+          />
+        }
+      </div>
+
+      <div class="test-row">
+        <button type="button" class="test-btn" (click)="testConnection()" [disabled]="testing()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          {{ testing() ? 'Comprobando...' : 'Probar conexión' }}
+        </button>
+        @if (testStatus() !== 'unknown') {
+          <span class="test-result" [class.green]="testStatus() === 'green'" [class.orange]="testStatus() === 'orange'" [class.red]="testStatus() === 'red'">
+            <span class="status-dot-sm" [class.green]="testStatus() === 'green'" [class.orange]="testStatus() === 'orange'" [class.red]="testStatus() === 'red'"></span>
+            {{ testText() }}
+          </span>
+        }
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <a class="btn-secondary" routerLink="/tools">Cancelar</a>
+      <button type="submit" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        {{ editId() ? 'Guardar cambios' : 'Guardar' }}
+      </button>
+    </div>
+  </form>
+</div>
