@@ -1,17 +1,47 @@
-import { Component } from '@angular/core';
+import { Component, signal, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { ActiveUniverseService } from '../../services/active-universe.service';
+
+interface ActivityItem {
+  id: string;
+  text: string;
+  time: string;
+  color: string;
+}
 
 @Component({
   standalone: true,
-  template: `
-    <div class="page home-page">
-      <h1>Dashboard</h1>
-      <p>Bienvenido al panel de administración de KAISTU Studio.</p>
-    </div>
-  `,
-  styles: [`
-    .home-page { padding: 2rem; }
-    h1 { margin: 0 0 1rem; font-size: 1.75rem; font-weight: 600; }
-    p { color: var(--text-secondary); font-size: 1rem; }
-  `]
+  imports: [RouterLink],
+  templateUrl: './home.html',
+  styleUrl: './home.scss',
 })
-export default class HomeComponent {}
+export default class HomeComponent {
+  protected readonly universeService = inject(ActiveUniverseService);
+
+  protected readonly activity = signal<ActivityItem[]>([
+    {
+      id: '1',
+      text: 'Personaje "Lyra" creado en universo Ethereal',
+      time: 'Hace 2 horas',
+      color: 'var(--purple)',
+    },
+    {
+      id: '2',
+      text: 'Escena "El Despertar" actualizada con nuevo diálogo',
+      time: 'Hace 5 horas',
+      color: 'var(--green)',
+    },
+    {
+      id: '3',
+      text: 'Universo "Neon Genesis" añadido al catálogo',
+      time: 'Hace 1 día',
+      color: 'var(--accent)',
+    },
+    {
+      id: '4',
+      text: '3 nuevos assets subidos al universo Starlight',
+      time: 'Hace 2 días',
+      color: 'var(--orange)',
+    },
+  ]);
+}

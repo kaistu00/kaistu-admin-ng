@@ -22,10 +22,11 @@ describe('App', () => {
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
     const links = compiled.querySelectorAll('.nav-link');
-    expect(links.length).toBe(3);
+    expect(links.length).toBe(4);
     expect(links[0]?.textContent).toContain('Dashboard');
     expect(links[1]?.textContent).toContain('Universos');
     expect(links[2]?.textContent).toContain('Personajes');
+    expect(links[3]?.textContent).toContain('Tools');
   });
 
   it('should render topbar with universe selector', () => {

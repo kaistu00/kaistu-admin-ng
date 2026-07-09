@@ -14,6 +14,8 @@
 - **No Firebase SDK on client**. All Firestore connections go through Server Routes (`*.server.ts`).
 - Client uses `HttpClient` only, targeting `/api/...` endpoints.
 - Configured via `provideHttpClient(withFetch())` in `app.config.ts`.
+- Firebase Admin uses `dynamic import()` (lazy) in `firebase.server.ts` to avoid `__dirname` ESM errors during prerendering (`google-gax` issue).
+- API routes call `withDb()` which awaits `initFirebase()` before accessing Firestore.
 
 ### Angular Modern
 - Components are 100% **standalone** (`standalone: true`, no NgModules).
@@ -27,19 +29,30 @@
 ```
 src/
 ├── app/
-│   ├── pages/           # Lazy-loaded route pages
-│   │   ├── home/        # Dashboard
-│   │   ├── universes/   # Universe management
-│   │   └── characters/  # Character CRUD
-│   ├── services/        # Injectable services (signals-based state)
-│   ├── app.ts           # Root component (standalone)
-│   ├── app.html         # Layout: sidebar + topbar + router-outlet
-│   ├── app.scss         # Dark theme (--accent: #00d2ff)
-│   ├── app.routes.ts    # Lazy routes
-│   ├── app.config.ts    # App bootstrap config
-│   └── app.spec.ts      # Root tests
-├── server.ts            # Express SSR server
-└── main.ts              # Client bootstrap
+│   ├── pages/             # Lazy-loaded route pages
+│   │   ├── home/          # Dashboard
+│   │   ├── universes/     # Universe CRUD (form with 4 tabs)
+│   │   ├── worlds/        # World CRUD (linked to universes)
+│   │   ├── local-tools/   # Tools (profiles, connections)
+│   │   └── characters/    # Character CRUD
+│   ├── services/
+│   │   ├── firebase.server.ts  # Firebase Admin (lazy import, SSR only)
+│   │   └── ...                 # Signals-based state services
+│   ├── app.ts             # Root component (standalone)
+│   ├── app.html           # Layout: sidebar + topbar + router-outlet
+│   ├── app.scss           # Dark theme (--accent: #00d2ff)
+│   ├── app.routes.ts      # Lazy routes
+│   ├── app.routes.server.ts  # RenderMode config per route
+│   ├── app.config.ts      # App bootstrap config
+│   └── app.spec.ts        # Root tests
+├── environments/
+│   ├── environment.ts         # Dev (useEmulators: true)
+│   └── environment.prod.ts    # Prod (useEmulators: false)
+├── server.ts              # Express SSR + BFF API endpoints
+├── main.ts                # Client bootstrap
+├── firebase.json          # Emulators config
+├── .firebaserc            # Default project: kaitsu-project
+└── docs/                  # Project documentation
 ```
 
 ## Commands
@@ -50,6 +63,12 @@ src/
 | `npm run build` | `ng build` (SSR, production) |
 | `npm test` | `ng test` (Vitest) |
 | `npm run serve:ssr` | Node SSR server on port 4000 |
+| `npm run emulators` | Auto-detecta datos guardados (o arranque limpio) |
+| `npm run emulators:base` | `firebase emulators:start` (limpio) |
+| `npm run emulators:seed` | `firebase emulators:start --import=./.emulator-data` |
+| `npm run emulators:export` | `firebase emulators:export ./.emulator-data` |
+| `npm run emulators:seed` | Emulators with `--import=./.emulator-data` |
+| `npm run emulators:export` | `firebase emulators:export ./.emulator-data` |
 
 ## Design System
 
