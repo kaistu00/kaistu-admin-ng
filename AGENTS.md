@@ -19,6 +19,9 @@
 - Configured via `provideHttpClient(withFetch())` in `app.config.ts`.
 - Firebase Admin uses `dynamic import()` (lazy) in `firebase.server.ts` to avoid `__dirname` ESM errors during prerendering (`google-gax` issue).
 - API routes call `withDb()` which awaits `initFirebase()` before accessing Firestore.
+- `firebase/auth` **no está en el cliente**. OAuth Google se maneja server-side:
+  - **Producción**: redirect a Google → callback → session cookie
+  - **Desarrollo** (emulador): `POST /api/auth/dev-login` crea sesión via Admin SDK + REST API
 
 ### Angular Modern
 - Components are 100% **standalone** (`standalone: true`, no NgModules).

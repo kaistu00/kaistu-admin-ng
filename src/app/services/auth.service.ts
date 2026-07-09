@@ -2,8 +2,6 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { lastValueFrom } from 'rxjs';
-import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, connectAuthEmulator } from 'firebase/auth';
 import { environment } from '../../environments/environment';
 
 export interface UserProfile {
@@ -12,9 +10,6 @@ export interface UserProfile {
   name: string;
   picture: string;
 }
-
-const KAISTU_DOMAIN = '@kaistu.com';
-const KAISTU_EXTERNAL_URL = 'https://kaistu.com';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -25,21 +20,14 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.user() !== null);
   readonly isInitialized = signal(false);
 
-  private readonly auth = getAuth(initializeApp(environment.firebase));
-  private readonly googleProvider = new GoogleAuthProvider();
-
   constructor() {
-    if (environment.useEmulators) {
-      connectAuthEmulator(this.auth, 'http://127.0.0.1:9099', { disableWarnings: true });
-    }
     void this.checkSession();
   }
 
-  async signInWithGoogle(): Promise<void> {
+  /** Dev login para emuladores locales — email con dominio @kaistu.com */
+  async devLogin(email: string): Promise<void> {
     try {
-      const result = await signInWithPopup(this.auth, this.googleProvider);
-      const idToken = await result.user.getIdToken();
-      const profile = await lastValueFrom(this.http.post<UserProfile>('/api/auth/login', { idToken }));
+      const profile = await lastValueFrom(this.http.post<UserProfile>('/api/auth/dev-login', { email }));
       if (profile) {
         this.user.set(profile);
         await this.router.navigateByUrl('/');
@@ -47,18 +35,21 @@ export class AuthService {
     } catch (err: unknown) {
       const httpErr = err as { status?: number; error?: { error?: string } };
       if (httpErr?.status === 403) {
-        await signOut(this.auth);
-        window.location.href = KAISTU_EXTERNAL_URL;
+        window.location.href = 'https://kaistu.com';
         return;
       }
-      console.error('Sign in failed:', err);
+      console.error('Dev login failed:', err);
     }
+  }
+
+  /** Google OAuth — redirige al servidor para el flujo completo */
+  signInWithGoogle(): void {
+    window.location.href = '/api/auth/google';
   }
 
   async signOut(): Promise<void> {
     try {
       await lastValueFrom(this.http.post('/api/auth/logout', {}));
-      await signOut(this.auth);
       this.user.set(null);
       await this.router.navigateByUrl('/login');
     } catch (err) {

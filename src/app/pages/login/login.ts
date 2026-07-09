@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   standalone: true,
@@ -8,8 +9,14 @@ import { AuthService } from '../../services/auth.service';
 })
 export default class Login {
   private readonly auth = inject(AuthService);
+  protected readonly isDev = environment.useEmulators;
+  protected email = '';
 
   protected onSignIn(): void {
-    void this.auth.signInWithGoogle();
+    if (this.isDev && this.email) {
+      void this.auth.devLogin(this.email);
+    } else {
+      this.auth.signInWithGoogle();
+    }
   }
 }
