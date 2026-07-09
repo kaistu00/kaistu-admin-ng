@@ -19,29 +19,31 @@ Panel de administración para KAISTU Studio — gestión de universos narrativos
 
 ```
 src/
-├── server.ts              # Express SSR + BFF API endpoints
+├── server.ts              # Express SSR + BFF API endpoints + auth middleware
 ├── main.ts                # Client bootstrap
+├── firestore.rules        # Firestore security rules
 ├── app/
 │   ├── app.ts             # Root component (standalone)
 │   ├── app.html           # Layout: sidebar + topbar + router-outlet
 │   ├── app.scss           # Dark theme (--accent: #00d2ff)
-│   ├── app.routes.ts      # Lazy routes
+│   ├── app.routes.ts      # Lazy routes (login + authGuard en todas)
 │   ├── app.routes.server.ts  # RenderMode per route
 │   ├── app.config.ts      # App bootstrap config
 │   ├── app.spec.ts        # Root tests
+│   ├── guards/
+│   │   └── auth.guard.ts  # Protege rutas (redirige a /login)
 │   ├── pages/
 │   │   ├── home/          # Dashboard
+│   │   ├── login/         # Login con Google OAuth / dev-login local
 │   │   ├── universes/     # Universos CRUD
 │   │   ├── worlds/        # Mundos CRUD
 │   │   ├── characters/    # Personajes CRUD
 │   │   ├── local-tools/   # Tools (profiles, connections)
 │   │   └── studio-workers/# Trabajadores IA CRUD
 │   └── services/
-│       ├── firebase.server.ts  # Firebase Admin (SSR only)
-│       ├── auth.service.ts     # Auth: Google Sign-In, sesión por cookie
-│       ├── universe.service.ts # Universos HTTP client
-│       └── guards/
-│           └── auth.guard.ts   # Protege rutas (redirige a /login)
+│       ├── firebase.server.ts  # Firebase Admin (SSR only, lazy import)
+│       ├── auth.service.ts     # Auth: signals, sesión por cookie, sin Firebase SDK
+│       └── ...
 ├── environments/
 │   ├── environment.ts         # Dev (useEmulators: true)
 │   └── environment.prod.ts    # Prod
@@ -61,17 +63,21 @@ src/
 | `npm run emulators:export` | Exporta datos actuales a `.emulator-data/` |
 | `npm run emulators:base` | Emulators limpios (sin import) |
 
-## Primeros pasos
+## Primeros pasos (desarrollo local)
 
 ```bash
-# 1. Arrancar Firebase emulators (nueva terminal)
-npm run emulators
+# Terminal 1: Arrancar Firebase emulators
+npm run emulators:base
 
-# 2. Arrancar frontend (nueva terminal)
+# Terminal 2: Arrancar frontend + API
 npm start
 
-# 3. Abrir http://localhost:4200
+# Abrir http://localhost:4200
 ```
+
+En la pantalla de login, introduce un email con dominio `@kaistu.com` (ej: `test@kaistu.com`) y haz clic en **Acceder** — funciona contra el emulador local de Auth.
+
+Para producción se requiere configurar `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` como variables de entorno para el flujo OAuth.
 
 ## Documentación
 
@@ -86,7 +92,9 @@ npm start
 - Componentes **standalone** (sin NgModules)
 - **Signals** para estado reactivo (no RxJS BehaviorSubject)
 - Control flow moderno: `@if`, `@for`, `@defer`
-- BFF: Firebase SDK solo en server routes (`*.server.ts`)
+- **BFF estricto**: cero Firebase SDK en el cliente. OAuth y Firestore solo desde server
 - `HttpClient` + `withFetch()` en cliente
+- Sesión via cookie httpOnly (el cliente no gestiona tokens manualmente)
+- Todas las rutas `/api/*` protegidas por middleware de sesión
 - Archivos nombrados `feature.ts` (no `feature.component.ts`)
 - Lazy loading con `loadComponent: () => import(...)`
