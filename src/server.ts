@@ -25,7 +25,7 @@ app.use(cookieParser());
 
 /** Auth middleware: protect all /api/* except auth endpoints and debug */
 app.use('/api', async (req, res, next) => {
-  if (req.path.startsWith('/api/auth/') || req.path === '/api/debug') return next();
+  if (req.path.startsWith('/auth/') || req.path === '/debug') return next();
   const session = req.cookies?.['session'];
   if (!session) { res.status(401).json({ error: 'Unauthorized' }); return; }
   try {
