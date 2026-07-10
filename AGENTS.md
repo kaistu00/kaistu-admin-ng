@@ -12,10 +12,18 @@
 
 ### BFF Pattern (Backend for Frontend)
 - **No Firebase SDK on client**. All Firestore connections go through Server Routes (`*.server.ts`).
+- Session is managed via httpOnly cookie (`sameSite: lax`) created by the server after verifying the idToken.
+- Server validates that the authenticated email belongs to `@kaistu.com` (403 + redirect if not).
 - Client uses `HttpClient` only, targeting `/api/...` endpoints.
 - Configured via `provideHttpClient(withFetch())` in `app.config.ts`.
 - Firebase Admin uses `dynamic import()` (lazy) in `firebase.server.ts` to avoid `__dirname` ESM errors during prerendering (`google-gax` issue).
 - API routes call `withDb()` which awaits `initFirebase()` before accessing Firestore.
+- `firebase/auth` **no está en el cliente**. OAuth Google se maneja server-side:
+  - **Producción**: redirect a Google → callback → session cookie
+  - **Desarrollo** (emulador): `POST /api/auth/dev-login` crea sesión via Admin SDK + REST API
+- `firebase/auth` **no está en el cliente**. OAuth Google se maneja server-side:
+  - **Producción**: redirect a Google → callback → session cookie
+  - **Desarrollo** (emulador): `POST /api/auth/dev-login` crea sesión via Admin SDK + REST API
 
 ### Angular Modern
 - Components are 100% **standalone** (`standalone: true`, no NgModules).
@@ -29,14 +37,19 @@
 ```
 src/
 ├── app/
+│   ├── guards/
+│   │   ├── auth.guard.ts       # Route guard (redirects to /login)
+│   │   └── guest.guard.ts      # Redirects authenticated users away from /login
 │   ├── pages/             # Lazy-loaded route pages
 │   │   ├── home/          # Dashboard
+│   │   ├── login/         # Google Sign-In page (dev: email input, prod: OAuth redirect)
 │   │   ├── universes/     # Universe CRUD (form with 4 tabs)
 │   │   ├── worlds/        # World CRUD (linked to universes)
 │   │   ├── local-tools/   # Tools (profiles, connections)
 │   │   └── characters/    # Character CRUD
 │   ├── services/
 │   │   ├── firebase.server.ts  # Firebase Admin (lazy import, SSR only)
+│   │   ├── auth.service.ts     # Auth signals + Google sign-in + cookie
 │   │   └── ...                 # Signals-based state services
 │   ├── app.ts             # Root component (standalone)
 │   ├── app.html           # Layout: sidebar + topbar + router-outlet

@@ -69,12 +69,23 @@ export const environment = {
 };
 ```
 
+El **cliente** (`AuthService`) usa `connectAuthEmulator` para conectar con Auth local:
+
+```typescript
+if (environment.useEmulators) {
+  connectAuthEmulator(this.auth, 'http://127.0.0.1:9099', { disableWarnings: true });
+}
+```
+
 Firebase Admin SDK se configura en `firebase.server.ts` con:
 
 ```typescript
-process.env['FIREBASE_STORAGE_EMULATOR_HOST'] = '127.0.0.1:9199';
+process.env['FIREBASE_AUTH_EMULATOR_HOST'] = '127.0.0.1:9099';
+process.env['FIRESTORE_EMULATOR_HOST'] = '127.0.0.1:8080';
 db.settings({ host: '127.0.0.1:8080', ssl: false });
 ```
+
+Requiere `ENVIRONMENT=LOCAL` (se establece automáticamente con `npm start`).
 
 ## Requisitos
 

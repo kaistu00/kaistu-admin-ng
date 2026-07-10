@@ -14,11 +14,30 @@ import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { WebSocketServer, WebSocket } from 'ws';
 import type { Firestore, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
+import cookieParser from 'cookie-parser';
+import { OAuth2Client } from 'google-auth-library';
 import { initFirebase, getDb } from './app/services/firebase.server';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
+app.use(cookieParser());
+
+/** Auth middleware: protect all /api/* except auth endpoints and debug */
+app.use('/api', async (req, res, next) => {
+  if (req.path.startsWith('/auth/') || req.path === '/debug') return next();
+  const session = req.cookies?.['session'];
+  if (!session) { res.status(401).json({ error: 'Unauthorized' }); return; }
+  try {
+    await initFirebase();
+    const { getAuth } = await import('firebase-admin/auth');
+    await getAuth().verifySessionCookie(session, process.env['ENVIRONMENT'] !== 'LOCAL');
+    next();
+  } catch {
+    res.status(401).json({ error: 'Invalid session' });
+  }
+});
+
 const angularApp = new AngularNodeAppEngine();
 
 /** API — Debug: test Firebase init */
@@ -30,6 +49,129 @@ app.get('/api/debug', async (_req, res) => {
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : String(err) });
   }
+});
+
+/** API — Auth: verify session cookie and return user profile */
+app.get('/api/auth/me', async (req, res) => {
+  const session = req.cookies?.['session'];
+  if (!session) { res.status(401).json({ error: 'No session' }); return; }
+  try {
+    await initFirebase();
+    const { getAuth } = await import('firebase-admin/auth');
+    const decoded = await getAuth().verifySessionCookie(session, process.env['ENVIRONMENT'] !== 'LOCAL');
+    const { uid, email, name, picture } = decoded;
+    res.json({ uid, email, name, picture } as Record<string, string>);
+  } catch {
+    res.status(401).json({ error: 'Invalid session' });
+  }
+});
+
+const KAISTU_DOMAIN = '@kaistu.com';
+
+/** Create an httpOnly session cookie from a verified idToken */
+async function createSessionCookie(idToken: string): Promise<string> {
+  const { getAuth } = await import('firebase-admin/auth');
+  const expiresIn = 60 * 60 * 24 * 14 * 1000;
+  return getAuth().createSessionCookie(idToken, { expiresIn });
+}
+
+function setSessionCookie(res: express.Response, sessionCookie: string): void {
+  const expiresIn = 60 * 60 * 24 * 14 * 1000;
+  res.cookie('session', sessionCookie, {
+    maxAge: expiresIn,
+    httpOnly: true,
+    secure: process.env['ENVIRONMENT'] !== 'LOCAL',
+    sameSite: 'lax',
+    path: '/',
+  });
+}
+
+/** API — Auth: Google OAuth login (redirect) — solo en producción */
+app.get('/api/auth/google', (req, res) => {
+  const clientId = process.env['GOOGLE_CLIENT_ID'];
+  const clientSecret = process.env['GOOGLE_CLIENT_SECRET'];
+  if (!clientId || !clientSecret) {
+    res.status(500).json({ error: 'Google OAuth not configured. Use dev-login for local development.' });
+    return;
+  }
+  const baseUrl = process.env['HOST_URL'] || `${req.protocol}://${req.headers.host}`;
+  const client = new OAuth2Client(clientId, clientSecret, `${baseUrl}/api/auth/callback`);
+  const url = client.generateAuthUrl({ access_type: 'offline', scope: ['email', 'profile'] });
+  res.redirect(url);
+});
+
+/** API — Auth: Google OAuth callback */
+app.get('/api/auth/callback', async (req, res) => {
+  const { code } = req.query;
+  if (!code || typeof code !== 'string') { res.status(400).json({ error: 'Missing code' }); return; }
+  try {
+    const clientId = process.env['GOOGLE_CLIENT_ID'];
+    const clientSecret = process.env['GOOGLE_CLIENT_SECRET'];
+    if (!clientId || !clientSecret) { res.status(500).json({ error: 'OAuth not configured' }); return; }
+    await initFirebase();
+    const { getAuth } = await import('firebase-admin/auth');
+    const baseUrl = process.env['HOST_URL'] || `${req.protocol}://${req.headers.host}`;
+    const client = new OAuth2Client(clientId, clientSecret, `${baseUrl}/api/auth/callback`);
+    const { tokens } = await client.getToken(code);
+    if (!tokens.id_token) { res.status(401).json({ error: 'Missing id_token' }); return; }
+    const decoded = await getAuth().verifyIdToken(tokens.id_token);
+    const email = decoded.email as string | undefined;
+    if (!email || !email.endsWith(KAISTU_DOMAIN)) {
+      res.status(403).send(`<script>window.location.href='https://kaistu.com'</script>`);
+      return;
+    }
+    const sessionCookie = await createSessionCookie(tokens.id_token);
+    setSessionCookie(res, sessionCookie);
+    res.redirect('/');
+  } catch (err) {
+    console.error('OAuth callback error:', err);
+    res.status(401).send('Authentication failed');
+  }
+});
+
+/** API — Auth: dev login para emuladores locales (solo LOCAL) */
+app.post('/api/auth/dev-login', express.json(), async (req, res) => {
+  if (process.env['ENVIRONMENT'] !== 'LOCAL') {
+    res.status(404).json({ error: 'Not available in production' });
+    return;
+  }
+  try {
+    const { email } = req.body;
+    if (!email || typeof email !== 'string') { res.status(400).json({ error: 'Missing email' }); return; }
+    if (!email.endsWith(KAISTU_DOMAIN)) {
+      res.status(403).json({ error: `Access restricted to ${KAISTU_DOMAIN} accounts` });
+      return;
+    }
+    await initFirebase();
+    const { getAuth } = await import('firebase-admin/auth');
+    const auth = getAuth();
+    let userRecord;
+    try { userRecord = await auth.getUserByEmail(email); }
+    catch { userRecord = await auth.createUser({ email, emailVerified: true, displayName: email.split('@')[0] }); }
+    const customToken = await auth.createCustomToken(userRecord.uid, { email });
+    const apiKey = 'demo-key';
+    const tokenUrl = `http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`;
+    const tokenRes = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: customToken, returnSecureToken: true }),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.idToken) { res.status(500).json({ error: 'Failed to sign in with emulator' }); return; }
+    const sessionCookie = await createSessionCookie(tokenData.idToken);
+    setSessionCookie(res, sessionCookie);
+    const name = userRecord.displayName || email.split('@')[0];
+    res.json({ uid: userRecord.uid, email, name, picture: '' } as Record<string, string>);
+  } catch (err) {
+    console.error('Dev login error:', err);
+    res.status(500).json({ error: String(err) });
+  }
+});
+
+/** API — Auth: clear session cookie */
+app.post('/api/auth/logout', (_req, res) => {
+  res.clearCookie('session', { path: '/' });
+  res.json({ ok: true });
 });
 
 /** API — Integration connection test */
@@ -122,7 +264,7 @@ app.get('/api/comfyui/list-workflows', (req, res) => {
   const workflowsDir = join(installPath, 'user', 'default', 'workflows');
   try {
     if (!existsSync(workflowsDir)) {
-      res.status(404).json({ error: 'Workflows directory not found', path: workflowsDir });
+      res.status(404).json({ error: 'Workflows directory not found' });
       return;
     }
     const files = readdirSync(workflowsDir)
@@ -146,7 +288,7 @@ app.get('/api/comfyui/read-workflow', (req, res) => {
   const filePath = join(installPath, 'user', 'default', 'workflows', `${safeName}.json`);
   try {
     if (!existsSync(filePath)) {
-      res.status(404).json({ error: 'Workflow file not found', path: filePath });
+      res.status(404).json({ error: 'Workflow file not found' });
       return;
     }
     const content = JSON.parse(readFileSync(filePath, 'utf-8'));

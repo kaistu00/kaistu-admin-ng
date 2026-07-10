@@ -88,11 +88,28 @@ Colección Firestore: `studio_workers`
 |--------|------|-------------|
 | WebSocket | `/api/n8n/ws-proxy?host=&port=` | WebSocket proxy a ComfyUI |
 
+## Autenticación
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| `GET` | `/api/auth/google` | Redirige a Google OAuth (producción). Configurar `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET` en entorno |
+| `GET` | `/api/auth/callback` | Callback de Google OAuth — canjea code por tokens, crea cookie, redirige al dashboard |
+| `POST` | `/api/auth/dev-login` | **Solo LOCAL**. Crea sesión con un email `@kaistu.com` usando el emulador de Auth |
+| `POST` | `/api/auth/logout` | Elimina la cookie de sesión |
+| `GET` | `/api/auth/me` | Verifica la cookie de sesión y devuelve el perfil del usuario (`uid`, `email`, `name`, `picture`) o 401 |
+
 ## Debug
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | `GET` | `/api/debug` | Test Firebase init + entorno |
+
+## Seguridad
+
+- Todas las rutas `/api/*` (excepto `/api/auth/*` y `/api/debug`) están protegidas por **middleware de sesión** que verifica la cookie httpOnly
+- El email debe pertenecer al dominio `@kaistu.com` — validación server-side
+- La cookie de sesión es `httpOnly`, `sameSite: lax`, y `secure` en producción
+- No hay Firebase SDK en el cliente — toda la comunicación con Firebase es server-side
 
 ## Convenciones
 

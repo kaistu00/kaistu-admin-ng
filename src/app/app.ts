@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { ActiveUniverseService } from './services/active-universe.service';
+import { AuthService } from './services/auth.service';
 import { filter } from 'rxjs';
 
 @Component({
@@ -12,6 +13,7 @@ import { filter } from 'rxjs';
 })
 export class App {
   protected readonly universeService = inject(ActiveUniverseService);
+  protected readonly authService = inject(AuthService);
   protected readonly pageTitle = signal('Dashboard');
   protected readonly showScrollTop = signal(false);
 
@@ -44,6 +46,10 @@ export class App {
     if (universe) {
       this.universeService.setActiveUniverse(universe);
     }
+  }
+
+  protected onSignOut(): void {
+    void this.authService.signOut();
   }
 
   private getTitleFromUrl(url: string): string {
