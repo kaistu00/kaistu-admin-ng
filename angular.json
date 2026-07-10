@@ -35,7 +35,7 @@
             "server": "src/main.server.ts",
             "outputMode": "server",
             "security": {
-              "allowedHosts": ["localhost", "localhost:4200"]
+              "allowedHosts": ["localhost", "localhost:4200", "admin.kaistu.com"]
             },
             "ssr": {
               "entry": "src/server.ts"
