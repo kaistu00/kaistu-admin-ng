@@ -108,19 +108,40 @@ app.get('/api/auth/callback', async (req, res) => {
     const clientId = process.env['GOOGLE_CLIENT_ID'];
     const clientSecret = process.env['GOOGLE_CLIENT_SECRET'];
     if (!clientId || !clientSecret) { res.status(500).json({ error: 'OAuth not configured' }); return; }
-    await initFirebase();
-    const { getAuth } = await import('firebase-admin/auth');
     const baseUrl = process.env['HOST_URL'] || `${req.protocol}://${req.headers.host}`;
     const client = new OAuth2Client(clientId, clientSecret, `${baseUrl}/api/auth/callback`);
     const { tokens } = await client.getToken(code);
     if (!tokens.id_token) { res.status(401).json({ error: 'Missing id_token' }); return; }
-    const decoded = await getAuth().verifyIdToken(tokens.id_token);
-    const email = decoded.email as string | undefined;
+    const loginTicket = await client.verifyIdToken({ idToken: tokens.id_token, audience: clientId });
+    const payload = loginTicket.getPayload();
+    const email = payload?.email;
+    const name = payload?.name;
+    const picture = payload?.picture;
     if (!email || !email.endsWith(KAISTU_DOMAIN)) {
       res.status(403).send(`<script>window.location.href='https://kaistu.com'</script>`);
       return;
     }
-    const sessionCookie = await createSessionCookie(tokens.id_token);
+    await initFirebase();
+    const { getAuth } = await import('firebase-admin/auth');
+    const auth = getAuth();
+    let userRecord;
+    try { userRecord = await auth.getUserByEmail(email); }
+    catch { userRecord = await auth.createUser({ email, emailVerified: true, displayName: name || email.split('@')[0], photoURL: picture }); }
+    if (name && userRecord.displayName !== name) {
+      await auth.updateUser(userRecord.uid, { displayName: name, photoURL: picture });
+    }
+    const customToken = await auth.createCustomToken(userRecord.uid, { email });
+    const apiKey = process.env['FIREBASE_API_KEY'];
+    if (!apiKey) { res.status(500).json({ error: 'Firebase API key not configured' }); return; }
+    const tokenUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithCustomToken?key=${apiKey}`;
+    const tokenRes = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: customToken, returnSecureToken: true }),
+    });
+    const tokenData = await tokenRes.json();
+    if (!tokenData.idToken) { res.status(500).json({ error: 'Failed to exchange token' }); return; }
+    const sessionCookie = await createSessionCookie(tokenData.idToken);
     setSessionCookie(res, sessionCookie);
     res.redirect('/');
   } catch (err) {
